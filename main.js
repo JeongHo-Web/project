@@ -13,11 +13,11 @@ db.connect()
 const app = express()
 
 app.get('/', (req, res) => { // 메인
-    res.sendFile(__dirname + '/main.html')
+    res.sendFile(__dirname + '/main.html') // [수정]
 })
 
 app.get('/intro', (req, res) => { // 소개 페이지
-    res.sendFile(__dirname + '/intro.html');
+    res.sendFile(__dirname + '/intro.html'); // [수정]
 })
 
 app.get('/search', (req, res) => {
@@ -58,20 +58,20 @@ app.get('/category', (req, res) => {
     })
 })
 
-app.get('/post', (req, res) => {
+app.get('/post', (req, res) => { // 게시물 페이지
     const {bookId} = req.query
     db.query(`select * from post where id = ${bookId}`, (err, bookInfo) => {
         if (err) throw err
         if (bookInfo.length === 0) {
-            temp = '<h1>No result.</h1>' // [수정] 
+            temp = '<h1>No result.</h1>' // [수정] 게시물이 없을 때
         }
         else {
-            temp = `<h1>${bookInfo[0].bookName}</h1><h3>${bookInfo[0].author}</h3><h3>${bookInfo[0].category}</h3>` // 수정
+            temp = `<h1>${bookInfo[0].bookName}</h1><h3>${bookInfo[0].author}</h3><h3>${bookInfo[0].category}</h3>` // [수정] 게시물이 있을 때
         }
         db.query(`select * from comment where id = ${bookId}`, (err, comments) => {
             if (err) throw err
             if (comments.length === 0 && bookInfo.length != 0) {
-                temp += '<br><br><h3>No comments.</h3>' // 수정
+                temp += '<br><br><h3>No comments.</h3>' // [수정] 댓글이 없을 때
             }
             else {
                 for(let i = 0; i < comments.length; i++) {
@@ -109,7 +109,7 @@ app.post('/create_process', (req, res) => { // 게시물 or 댓글 생성
     })
 })
 
-app.post('/update_process', (req, res) => {
+app.post('/update_process', (req, res) => { // 게시물 or 댓글 업데이트
     let body = ''
     req.on('data', (data) => {
         body = body + data
@@ -123,7 +123,6 @@ app.post('/update_process', (req, res) => {
         query_column_list = Object.keys(post)
         query_list = Object.values(post); query_list.push(postId)
         if (query_list.length === 2) table = 'comment'; else table = 'post'
-        console.log(query_list)
         
         db.query(`update ${table} set ${query_column_list.join('=?, ') + '=?'} where id = ?`, query_list, (err) => {
             if (err) throw err;
@@ -133,7 +132,7 @@ app.post('/update_process', (req, res) => {
     return 'hello'
 })
 
-app.post('/delete_process', (req, res) => {
+app.post('/delete_process', (req, res) => { // 게시물 or 댓글 삭제
     let body = ''
     req.on('data', (data) => {
         body = body + data
