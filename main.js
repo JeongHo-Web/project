@@ -2,7 +2,7 @@ const express = require('express')
 const qs = require('qs')
 const mysql      = require('mysql');
 const HTML = require('./template/template.js')
-const db = mysql.createConnection({ // 수정
+const db = mysql.createConnection({ // [수정]
     host     : '127.0.0.1',
     user     : 'root',
     password : 'apmsetup',
@@ -34,7 +34,7 @@ app.get('/search', (req, res) => {
             else {
                 if (err) throw err
                 for(let i = 0; i < data.length; i++) {
-                    htmlPage += `<h1>${data[i].bookName}</h1><h3>${data[i].author}</h3><h3>${data[i].category}</h3><br><br>` // [수정] 검색 결과가 있을 때
+                    htmlPage += `<h1>${data[i].bookName}</h1><img src="${data[i].bookImage}"><h3>${data[i].author}</h3><h3>${data[i].category}</h3><br><br>` // [수정] 검색 결과가 있을 때
                 }
             }
             res.send(HTML.returnHTML(htmlPage))
@@ -44,44 +44,56 @@ app.get('/search', (req, res) => {
 })
 
 app.get('/category', (req, res) => {
-    const {category} = req.query
-    db.query(`select * from post where category = ${category}`, (err, category_book) => {
-        if (err) throw err
-
-        for(let i = 0; i < category_book.length; i++) {
-            const bookName = category_book[i].bookName
-            const category = category_book[i].category
-            const author = category_book[i].author
-            const date = category_book[i].date
-
-        }
-    })
+    const {q} = req.query;
+    if (q === undefined) {
+        res.sendFile(__dirname + '/category.html')
+    }
+    else {
+        db.query(`select * from post where category = ?`, [q], (err, data) => {
+            if (err) throw err
+            let htmlPage = ``
+            if (data.length === 0) {
+                htmlPage += "<h1>No result.</h1>"
+            }
+            else {
+                for(let i = 0; i < data.length; i++) {
+                    htmlPage += `<h1>${data[i].bookName}</h1><h3>${data[i].author}</h3><h3>${data[i].category}</h3><br><br>`
+                }
+            }
+            res.send(HTML.returnHTML(htmlPage))
+        })
+    }
 })
 
 app.get('/post', (req, res) => { // 게시물 페이지
     const {bookId} = req.query
-    db.query(`select * from post where id = ${bookId}`, (err, bookInfo) => {
-        if (err) throw err
-        if (bookInfo.length === 0) {
-            temp = '<h1>No result.</h1>' // [수정] 게시물이 없을 때
-        }
-        else {
-            temp = `<h1>${bookInfo[0].bookName}</h1><h3>${bookInfo[0].author}</h3><h3>${bookInfo[0].category}</h3>` // [수정] 게시물이 있을 때
-        }
-        db.query(`select * from comment where id = ${bookId}`, (err, comments) => {
+    if (bookId === undefined) {
+        res.redirect(302, '/')
+    }
+    else {
+        db.query(`select * from post where id = ${bookId}`, (err, bookInfo) => {
             if (err) throw err
-            if (comments.length === 0 && bookInfo.length != 0) {
-                temp += '<br><br><h3>No comments.</h3>' // [수정] 댓글이 없을 때
+            if (bookInfo.length === 0) {
+                temp = '<h1>No result.</h1>' // [수정] 게시물이 없을 때
             }
             else {
-                for(let i = 0; i < comments.length; i++) {
-                    temp += `<br><br><h3>${comments[i].content}` // 수정
-                }
+                temp = `<h1>${bookInfo[0].bookName}</h1><img src="${bookInfo[0].bookImage}"><h3>${bookInfo[0].author}</h3><h3>${bookInfo[0].category}</h3>` // [수정] 게시물이 있을 때
             }
-            htmlPage = HTML.returnHTML(temp)
-            res.send(htmlPage)
+            db.query(`select * from comment where id = ${bookId}`, (err, comments) => {
+                if (err) throw err
+                if (comments.length === 0 && bookInfo.length != 0) {
+                    temp += '<br><br><h3>No comments.</h3>' // [수정] 댓글이 없을 때
+                }
+                else {
+                    for(let i = 0; i < comments.length; i++) {
+                        temp += `<br><br><h3>${comments[i].content}` // [수정] 댓글이 있을 때
+                    }
+                }
+                htmlPage = HTML.returnHTML(temp)
+                res.send(htmlPage)
+            })
         })
-    })
+    }
 })
 
 app.get('/update', (req, res) => { // 업데이트 페이지
@@ -90,6 +102,7 @@ app.get('/update', (req, res) => { // 업데이트 페이지
 
 app.post('/create_process', (req, res) => { // 게시물 or 댓글 생성
     let body = '' 
+    console.log('point 1')
     req.on('data', (data) => {
         body = body + data
     })    
